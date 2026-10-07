@@ -211,16 +211,40 @@ export async function x429Fetch(input: string | URL | Request, init: RequestInit
     txHash: receipt.transactionHash,
     decision,
   });
-  const overtook = logs.find((l) => l.eventName === "Overtook" && l.args.ticketId === ticketId);
-  if (overtook && overtook.eventName === "Overtook") {
-    const passedIds = logs.flatMap((l) => (l.eventName === "Passed" && l.args.byTicketId === ticketId ? [l.args.passedTicketId] : []));
-    opts.onOvertake?.({
-      ticketId,
-      passed: Number(overtook.args.positions),
-      paid: overtook.args.paid,
-      passedIds,
-      txHash: receipt.transactionHash,
-    });
+  const passedIds = reportOvertake(opts, receipt, ticketId);
+
+  // 2b. Another join can land in the same block, ahead of ours. Then our overtake spends its
+  // positions on the newcomer and stops short of the plan. Decide once more for the ticket we
+  // now hold, from a fresh read, and finish the move with a plain overtake if it is still worth it.
+  if (decision.overtake && decision.passIds.some((id) => !passedIds.includes(id))) {
+    try {
+      const fresh = await readQueue(publicClient, contract, queueId, 256);
+      const again = decide({
+        valuePerSecond: opts.valuePerSecond,
+        serviceIntervalMs: descriptor.serviceIntervalMs,
+        queue: fresh,
+        myTicketId: ticketId,
+        gasCost: opts.gasCost,
+      });
+      if (again.overtake) {
+        opts.onDecision?.(again, descriptor);
+        const r = await sendTx(
+          wallet,
+          publicClient,
+          {
+            to: contract,
+            data: encodeFunctionData({ abi: x429Abi, functionName: "overtake", args: [ticketId, again.maxPositions] }),
+            value: again.budget,
+            minGas: OVERTAKE_BASE_GAS + OVERTAKE_GAS_PER_PASS * BigInt(again.maxPositions),
+          },
+          { fees: opts.fees ?? FEES },
+        );
+        opts.onGas?.(r);
+        if (r.status === "success") reportOvertake(opts, r, ticketId);
+      }
+    } catch {
+      // the queue moved again (e.g. NothingPassed): keep the position we have
+    }
   }
 
   // 3. wait to be served
@@ -256,6 +280,23 @@ export async function x429Fetch(input: string | URL | Request, init: RequestInit
     res = await doFetch(input, retryInit);
   }
   return res;
+}
+
+/** Calls onOvertake for an Overtook event of `ticketId` in the receipt; returns the ids it passed. */
+function reportOvertake(opts: X429FetchOptions, receipt: TransactionReceipt, ticketId: bigint): bigint[] {
+  const logs = parseEventLogs({ abi: x429Abi, logs: receipt.logs, strict: true });
+  const passedIds = logs.flatMap((l) => (l.eventName === "Passed" && l.args.byTicketId === ticketId ? [l.args.passedTicketId] : []));
+  const overtook = logs.find((l) => l.eventName === "Overtook" && l.args.ticketId === ticketId);
+  if (overtook && overtook.eventName === "Overtook") {
+    opts.onOvertake?.({
+      ticketId,
+      passed: Number(overtook.args.positions),
+      paid: overtook.args.paid,
+      passedIds,
+      txHash: receipt.transactionHash,
+    });
+  }
+  return passedIds;
 }
 
 /** Polls `tickets(id)` until it is served. Null on timeout; throws TicketGoneError if it left. */

@@ -111,6 +111,7 @@ log "keys derived into .e2e/ (deployer $DEPLOYER, operator $OPERATOR, treasury $
 # ---------------------------------------------------------------- 3. deploy + fund
 # Stock forge refuses a node that reports the `arc` network family, so use Arc Foundry there.
 if [ "$NODE_KIND" = "arc-anvil" ]; then FORGE_SCRIPT=(arc-forge script --network arc); else FORGE_SCRIPT=(forge script); fi
+DEPLOY_BLOCK="$(cast block-number --rpc-url "$RPC")"
 DEPLOY_OUT="$(cd contracts && DEPLOYER_PRIVATE_KEY="$(cat "$E2E/deployer.key")" X429_OPERATOR="$OPERATOR" \
   X429_QUEUE_META='{"name":"x429 e2e","serviceIntervalMs":3000}' \
   "${FORGE_SCRIPT[@]}" script/Deploy.s.sol --rpc-url "$RPC" --broadcast --with-gas-price 50gwei --priority-gas-price 0.01gwei 2>&1)" \
@@ -137,8 +138,21 @@ export X429_POLL_MS=1000
 export X429_RUSH_SPREAD_S="${E2E_RUSH_SPREAD_S:-8}"
 export X429_AGENT_TIMEOUT_S=$((DEADLINE_S - 10))
 
-node demo/setup.ts fund --operator 1 --bot 0.25 >"$E2E/setup.log" 2>&1 || { cat "$E2E/setup.log"; die "setup.ts fund failed"; }
-log "setup.ts fund: $(grep -c '"evt":"funded"' "$E2E/setup.log") transfers from the treasury"
+node demo/setup.ts fund --operator 1 --bot 0.25 --dry-run >"$E2E/setup.log" 2>&1 || { cat "$E2E/setup.log"; die "setup.ts fund --dry-run failed"; }
+node demo/setup.ts fund --operator 1 --bot 0.25 >>"$E2E/setup.log" 2>&1 || { cat "$E2E/setup.log"; die "setup.ts fund failed"; }
+log "setup.ts fund: $(grep -c '"evt":"funded"' "$E2E/setup.log") transfers from the treasury (arc-anvil pre-funds mnemonic indices 0-9)"
+node demo/setup.ts site-config --out "$E2E/site" --deploy-block "$DEPLOY_BLOCK" >>"$E2E/setup.log" 2>&1 || die "setup.ts site-config failed"
+node -e '
+  const fs = require("fs");
+  const dir = process.argv[1];
+  const cfg = JSON.parse(fs.readFileSync(dir + "/config.json", "utf8"));
+  const bots = JSON.parse(fs.readFileSync(dir + "/bots.json", "utf8"));
+  const text = fs.readFileSync(dir + "/config.json", "utf8") + fs.readFileSync(dir + "/bots.json", "utf8");
+  const ok = cfg.contract.toLowerCase() === process.argv[2].toLowerCase() && cfg.queueId === Number(process.argv[3]) &&
+    cfg.chainId === 31337 && bots.length === 10 && !/[0-9a-fA-F]{64}/.test(text);
+  if (!ok) { console.error("bad site config", cfg, bots.length); process.exit(1); }
+' "$E2E/site" "$CONTRACT" "$QUEUE_ID" || die "site-config output is wrong"
+log "setup.ts site-config: config.json + bots.json (10 labelled addresses, no secrets)"
 cast send --rpc-url "$RPC" --private-key "$(cat "$E2E/deployer.key")" "${FEE_ARGS[@]}" --value 1ether "$HUMAN" >/dev/null
 log "human funded with 1 USDC"
 

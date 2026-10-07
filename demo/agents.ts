@@ -234,14 +234,14 @@ async function rush(kind: "scheduled" | "human" | "manual", spreadS: number, tri
     saveState();
     log({ evt: "rush_start", rush: id, kind, spreadS, bots: bots.length, ...trigger });
     await treasuryFlows();
+    // arrivals are spread over [0, spread] from now (after the treasury flows)
     const order = shuffle(bots.filter((b) => !b.busy));
     const offsets = order.map(() => Math.random() * spreadS * 1000).sort((a, b) => a - b);
-    const flowsMs = Date.now() - startedAt;
     const results = await Promise.all(
       order.map(
         (bot, i) =>
           new Promise<ArrivalResult>((resolve) => {
-            setTimeout(() => resolve(arrive(bot, id)), Math.max(0, offsets[i]! - flowsMs));
+            setTimeout(() => resolve(arrive(bot, id)), offsets[i]!);
           }),
       ),
     );
