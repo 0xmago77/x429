@@ -196,7 +196,15 @@ export async function withWalletLock<T>(address: Address, fn: () => Promise<T>):
   }
 }
 
-export type TxRequest = { to: Address; data?: Hex; value?: bigint; gas?: bigint };
+export type TxRequest = {
+  to: Address;
+  data?: Hex;
+  value?: bigint;
+  /** Exact gas limit. Default: estimate × 1.25 + 25k, at least `minGas`. */
+  gas?: bigint;
+  /** Lower bound for the estimated gas limit (e.g. for overtakes, whose cost depends on who is passed at execution time). */
+  minGas?: bigint;
+};
 
 export type SendTxOptions = {
   fees?: { maxFeePerGas: bigint; maxPriorityFeePerGas: bigint };
@@ -223,6 +231,15 @@ export async function sendTx(
     const pending = await client.getTransactionCount({ address: account.address, blockTag: "pending" });
     const nonce = Math.max(pending, nextNonces.get(key) ?? 0);
     const fees = opts.fees ?? FEES;
+    // State can change between estimation and inclusion (another join lands first, so an
+    // overtake passes different tickets), so never send with the bare estimate. Unused gas is
+    // not charged.
+    let gas = req.gas;
+    if (gas === undefined) {
+      const estimate = await client.estimateGas({ account, to: req.to, data: req.data, value: req.value });
+      gas = estimate + estimate / 4n + 25_000n;
+      if (req.minGas !== undefined && gas < req.minGas) gas = req.minGas;
+    }
     let hash: Hash;
     try {
       hash = await wallet.sendTransaction({
@@ -231,7 +248,7 @@ export async function sendTx(
         to: req.to,
         data: req.data,
         value: req.value,
-        gas: req.gas,
+        gas,
         nonce,
         maxFeePerGas: fees.maxFeePerGas,
         maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
@@ -248,8 +265,10 @@ export async function sendTx(
         pollingInterval: opts.pollingIntervalMs,
       });
     } catch (err) {
-      // unknown fate: re-read the nonce from the chain next time
+      // unknown fate: re-read the nonce from the chain next time, and tell the caller the tx
+      // was broadcast (so it does not blindly send it again)
       nextNonces.delete(key);
+      if (err && typeof err === "object") (err as { txHash?: Hash }).txHash = hash;
       throw err;
     }
   });

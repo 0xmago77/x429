@@ -81,6 +81,7 @@ const fakeClient = {
     throw new Error(`unexpected read ${functionName}`);
   },
   getTransactionCount: async () => sent,
+  estimateGas: async () => 60_000n,
   waitForTransactionReceipt: async () => {
     // the operator served the head: mark it served and drop it from the queue
     const head = snapshot.tickets[0]!;

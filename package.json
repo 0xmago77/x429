@@ -19,7 +19,8 @@
     "test:contracts": "cd contracts && forge test",
     "test:sdk": "cd sdk && node --test",
     "test": "npm run test:contracts && npm run test:sdk && npm run typecheck",
-    "e2e": "bash scripts/e2e-local.sh"
+    "e2e": "bash scripts/e2e-local.sh",
+    "e2e:human": "E2E_MODE=human bash scripts/e2e-local.sh"
   },
   "devDependencies": {
     "@types/node": "^26.6.4",

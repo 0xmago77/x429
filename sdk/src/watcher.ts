@@ -261,7 +261,11 @@ export class QueueWatcher {
     });
     const [owner, , status, timesPassed, , , , , earned, paid] = t;
     if (status === TicketStatus.Served) {
-      return { ticketId, owner, waited: -1, timesPassed: Number(timesPassed), earned, paid };
+      // the Served log is usually one poll away (logs are scanned a block behind the head)
+      await this.refresh().catch(() => {});
+      await sleep(this.pollMs);
+      await this.refresh().catch(() => {});
+      return this.#served.get(ticketId) ?? { ticketId, owner, waited: -1, timesPassed: Number(timesPassed), earned, paid };
     }
     if (status === TicketStatus.Left || status === TicketStatus.Kicked) {
       throw new TicketGoneError(ticketId, status === TicketStatus.Kicked);

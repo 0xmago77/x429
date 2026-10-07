@@ -9,7 +9,7 @@ import {
 } from "viem";
 import { x429Abi } from "./abi.ts";
 import { FEES, TicketStatus, sendTx, sleep, ticketMessage, type TicketStatusName } from "./chain.ts";
-import { decide, type PolicyDecision } from "./policy.ts";
+import { decide, type PolicyDecision, type PolicyTicket } from "./policy.ts";
 import { TicketGoneError, readQueue, type QueueWatcher, type ServedInfo } from "./watcher.ts";
 
 /** The `x429` object of a 429 response body. */
@@ -32,6 +32,13 @@ export type X429Descriptor = {
 
 export const TICKET_HEADER = "X-429-Ticket";
 export const SIGNATURE_HEADER = "X-429-Signature";
+
+/**
+ * Gas floor for joinAndOvertake: base + per position. Who gets passed is only known at
+ * execution time, and each pass can create a fresh `claimable` slot (a cold zero→non-zero SSTORE).
+ */
+export const OVERTAKE_BASE_GAS = 200_000n;
+export const OVERTAKE_GAS_PER_PASS = 60_000n;
 
 export type JoinInfo = { ticketId: bigint; skipPrice: bigint; position: number; txHash: Hash; decision: PolicyDecision };
 export type OvertakeInfo = { ticketId: bigint; passed: number; paid: bigint; passedIds: bigint[]; txHash: Hash };
@@ -133,43 +140,63 @@ export async function x429Fetch(input: string | URL | Request, init: RequestInit
   const contract = descriptor.contract;
   const queueId = Number(descriptor.queueId);
 
-  // 1. decide
+  // 1 + 2. decide, then join (and overtake). A join that reverts (the queue moved under us) is
+  // retried once, deciding again from a fresh read of the queue.
   const watcher =
     opts.watcher && opts.watcher.contract.toLowerCase() === contract.toLowerCase() && opts.watcher.queueId === queueId
       ? opts.watcher
       : undefined;
-  const queue = watcher?.snapshot?.tickets ?? (await readQueue(publicClient, contract, queueId, 256));
-  const decision = decide({
-    valuePerSecond: opts.valuePerSecond,
-    serviceIntervalMs: descriptor.serviceIntervalMs,
-    queue,
-    gasCost: opts.gasCost,
-  });
-  if (opts.skipPrice !== undefined) decision.mySkipPrice = opts.skipPrice;
-  if (opts.joinOnly) decision.overtake = false;
-  opts.onDecision?.(decision, descriptor);
+  let receipt: TransactionReceipt | undefined;
+  let decision: PolicyDecision | undefined;
+  for (let attempt = 0; attempt < 2 && !receipt; attempt++) {
+    // decide on a fresh read: during a rush, a poller's snapshot is often a few joins behind
+    let queue: readonly PolicyTicket[];
+    try {
+      queue = await readQueue(publicClient, contract, queueId, 256);
+    } catch (err) {
+      if (!watcher?.snapshot) throw err;
+      queue = watcher.snapshot.tickets;
+    }
+    decision = decide({
+      valuePerSecond: opts.valuePerSecond,
+      serviceIntervalMs: descriptor.serviceIntervalMs,
+      queue,
+      gasCost: opts.gasCost,
+    });
+    if (opts.skipPrice !== undefined) decision.mySkipPrice = opts.skipPrice;
+    if (opts.joinOnly) decision.overtake = false;
+    opts.onDecision?.(decision, descriptor);
 
-  // 2. join (and overtake)
-  const data = decision.overtake
-    ? encodeFunctionData({
-        abi: x429Abi,
-        functionName: "joinAndOvertake",
-        args: [queueId, decision.mySkipPrice, decision.maxPositions],
-      })
-    : encodeFunctionData({ abi: x429Abi, functionName: "join", args: [queueId, decision.mySkipPrice] });
-  let receipt: TransactionReceipt;
-  try {
-    receipt = await sendTx(
-      wallet,
-      publicClient,
-      { to: contract, data, value: decision.overtake ? decision.budget : undefined },
-      { fees: opts.fees ?? FEES },
-    );
-  } catch (err) {
-    throw new X429Error("join_failed", `join failed: ${(err as Error).message?.split("\n")[0]}`);
+    const data = decision.overtake
+      ? encodeFunctionData({
+          abi: x429Abi,
+          functionName: "joinAndOvertake",
+          args: [queueId, decision.mySkipPrice, decision.maxPositions],
+        })
+      : encodeFunctionData({ abi: x429Abi, functionName: "join", args: [queueId, decision.mySkipPrice] });
+    let r: TransactionReceipt;
+    try {
+      r = await sendTx(
+        wallet,
+        publicClient,
+        {
+          to: contract,
+          data,
+          value: decision.overtake ? decision.budget : undefined,
+          minGas: decision.overtake ? OVERTAKE_BASE_GAS + OVERTAKE_GAS_PER_PASS * BigInt(decision.maxPositions) : undefined,
+        },
+        { fees: opts.fees ?? FEES },
+      );
+    } catch (err) {
+      const broadcast = (err as { txHash?: string }).txHash !== undefined; // fate unknown: never send twice
+      if (attempt === 0 && !broadcast) continue;
+      throw new X429Error("join_failed", `join failed: ${(err as Error).message?.split("\n")[0]}`);
+    }
+    opts.onGas?.(r);
+    if (r.status === "success") receipt = r;
+    else if (attempt === 1) throw new X429Error("join_failed", `join reverted in ${r.transactionHash}`);
   }
-  opts.onGas?.(receipt);
-  if (receipt.status !== "success") throw new X429Error("join_failed", `join reverted in ${receipt.transactionHash}`);
+  if (!receipt || !decision) throw new X429Error("join_failed", "join failed");
 
   const logs = parseEventLogs({ abi: x429Abi, logs: receipt.logs, strict: true });
   const joined = logs.find(
