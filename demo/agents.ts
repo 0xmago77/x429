@@ -97,15 +97,23 @@ async function balances(addr: Address): Promise<{ balance: bigint; claimable: bi
   return { balance, claimable };
 }
 
-/** Withdraw claimable ≥ withdrawMin; sweep excess above sweepAbove back to the treasury; top up bots below topupMin. */
+/** Withdraw claimable ≥ withdrawMin and sweep excess above sweepAbove back to the treasury (per bot, in parallel), then top up. */
 async function treasuryFlows(): Promise<void> {
   // each bot only touches its own wallet, so bots run in parallel; the treasury then tops up one by one
   await Promise.all(bots.map((bot) => botFlows(bot)));
+  await topUps();
+}
+
+/** Top up bots below topupMin to topupTo, while the treasury holds more than its reserve. */
+async function topUps(): Promise<void> {
   if (!treasury || !treasuryAccount) return;
-  for (const bot of bots) {
+  const balances = await Promise.all(
+    bots.map((bot) => publicClient.getBalance({ address: bot.account.address }).catch(() => undefined)),
+  );
+  for (const [i, bot] of bots.entries()) {
     try {
-      const balance = await publicClient.getBalance({ address: bot.account.address });
-      if (balance >= cfg.topupMin) continue;
+      const balance = balances[i];
+      if (balance === undefined || balance >= cfg.topupMin) continue;
       const treasuryBalance = await publicClient.getBalance({ address: treasuryAccount.address });
       if (treasuryBalance <= cfg.treasuryReserve) {
         log({ evt: "topup_skipped", bot: bot.spec.name, reason: "treasury at reserve", treasuryUsdc: fmtUsdc(treasuryBalance) });
@@ -233,7 +241,10 @@ async function rush(kind: "scheduled" | "human" | "manual", spreadS: number, tri
     }
     saveState();
     log({ evt: "rush_start", rush: id, kind, spreadS, bots: bots.length, ...trigger });
-    await treasuryFlows();
+    // A human is waiting in the admission round: only the top-ups bots need to be able to join
+    // happen first; withdrawals and sweeps wait until after the rush.
+    if (kind === "human") await topUps();
+    else await treasuryFlows();
     // arrivals are spread over [0, spread] from now (after the treasury flows)
     const order = shuffle(bots.filter((b) => !b.busy));
     const offsets = order.map(() => Math.random() * spreadS * 1000).sort((a, b) => a - b);
@@ -249,6 +260,7 @@ async function rush(kind: "scheduled" | "human" | "manual", spreadS: number, tri
     const overtakes = results.filter((r) => r.overtook).length;
     const paid = results.reduce((s, r) => s + r.paid, 0n);
     log({ evt: "rush_done", rush: id, kind, ok, failed: results.length - ok, overtakes, paidUsdc: fmtUsdc(paid), seconds: Math.round((Date.now() - startedAt) / 1000) });
+    if (kind === "human") await Promise.all(bots.map((bot) => botFlows(bot)));
   } finally {
     rushActive = false;
   }
