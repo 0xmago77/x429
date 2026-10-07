@@ -1,0 +1,22 @@
+# systemd --user unit for the x429 demo agent swarm (bot rushes + treasury flows).
+# Install: cp ops/x429-agents.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+#          systemctl --user enable --now x429-agents
+# Replace %h/work/x429 below if the repo lives elsewhere. Secrets stay in key files referenced by
+# %h/.x429/env (X429_TREASURY_KEY_FILE=..., X429_BOT_KEYS_DIR=...), never in this unit.
+[Unit]
+Description=x429 demo agents (bot rushes)
+After=network-online.target x429-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/work/x429
+EnvironmentFile=%h/.x429/env
+Environment=PATH=%h/.hermes/tools/node-26.7.0-linux-x64/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node demo/agents.ts
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target

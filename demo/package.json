@@ -1,0 +1,16 @@
+{
+  "name": "x429-demo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "x429 demo: a rate-limited fortune API, an agent swarm and setup tooling.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "server": "node server.ts",
+    "agents": "node agents.ts",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "viem": "^2.57.3"
+  }
+}

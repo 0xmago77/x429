@@ -1,0 +1,22 @@
+# systemd --user unit for the x429 demo API (gate + operator loop).
+# Install: cp ops/x429-server.service ~/.config/systemd/user/ && systemctl --user daemon-reload
+#          systemctl --user enable --now x429-server
+# Replace %h/work/x429 below if the repo lives elsewhere. Secrets stay in key files referenced by
+# %h/.x429/env (X429_OPERATOR_KEY_FILE=...), never in this unit.
+[Unit]
+Description=x429 demo API (HTTP 429, settled)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/work/x429
+EnvironmentFile=%h/.x429/env
+Environment=PATH=%h/.hermes/tools/node-26.7.0-linux-x64/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/env node demo/server.ts
+Restart=always
+RestartSec=10
+NoNewPrivileges=true
+
+[Install]
+WantedBy=default.target
