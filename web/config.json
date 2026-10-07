@@ -1,0 +1,17 @@
+{
+  "chainId": 5042,
+  "chainName": "Arc",
+  "rpcUrls": [
+    "https://rpc.mainnet.arc.io",
+    "https://rpc.drpc.mainnet.arc.io",
+    "https://rpc.blockdaemon.mainnet.arc.io",
+    "https://rpc.quicknode.mainnet.arc.io"
+  ],
+  "explorer": "https://explorer.arc.io",
+  "contract": "0x0000000000000000000000000000000000000000",
+  "queueId": 1,
+  "deployBlock": 0,
+  "rushEveryMin": 120,
+  "serviceIntervalMs": 15000,
+  "repoUrl": "https://github.com/0xmago77/x429"
+}

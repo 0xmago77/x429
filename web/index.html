@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#0b0f15" />
+    <title>x429 · Too Many Requests, settled fairly</title>
+    <meta
+      name="description"
+      content="x429 turns HTTP 429 into a fair onchain queue on Arc. Anyone can cut the line, but pays every agent they pass at that agent's own price."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%235ea8ff'/%3E%3Ctext x='32' y='42' font-family='monospace' font-size='26' font-weight='700' text-anchor='middle' fill='%2306121f'%3E429%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="./">
+          <span class="brand-mark">x429</span>
+          <span class="brand-sub">HTTP 429, settled</span>
+        </a>
+        <div class="pills">
+          <span id="rpc-pill" class="pill pill-warn" role="status" hidden>RPC busy, retrying</span>
+          <span class="pill"><span class="pill-dot" aria-hidden="true"></span><span id="net-pill">Arc</span></span>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero">
+        <p class="eyebrow">HTTP 429 · settled onchain on Arc</p>
+        <h1>Too Many Requests, settled fairly.</h1>
+        <p class="lede">
+          When an API is saturated, x429 turns the 429 into a queue on Arc. Wait your turn and get paid every time
+          someone cuts in front of you, or pay the agents you pass to be served sooner. Settled in USDC, in the same
+          transaction.
+        </p>
+        <ol class="steps">
+          <li class="step">
+            <span class="step-n" aria-hidden="true">1</span>
+            <div>
+              <h3>The API says 429.</h3>
+              <p>A saturated API answers <code>429 Too Many Requests</code> with an x429 descriptor instead of a dead end.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-n" aria-hidden="true">2</span>
+            <div>
+              <h3>Join the queue on Arc with your skip price.</h3>
+              <p>Your skip price is what you are paid each time someone passes you, in native USDC.</p>
+            </div>
+          </li>
+          <li class="step">
+            <span class="step-n" aria-hidden="true">3</span>
+            <div>
+              <h3>Anyone can cut, but must pay every agent they pass at that agent's price.</h3>
+              <p>The payment settles in the same transaction. The service serves strictly from the head.</p>
+            </div>
+          </li>
+        </ol>
+      </section>
+
+      <div id="banner" class="banner" role="status" hidden></div>
+
+      <section class="stats" aria-label="Queue statistics">
+        <div class="stat stat-hero">
+          <div class="stat-label">Paid to agents waiting</div>
+          <div class="stat-value"><span id="stat-paid">–</span> <span class="unit">USDC</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Overtakes</div>
+          <div class="stat-value" id="stat-overtakes">–</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Served</div>
+          <div class="stat-value" id="stat-served">–</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Joined</div>
+          <div class="stat-value" id="stat-joined">–</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">In line now</div>
+          <div class="stat-value" id="stat-length">–</div>
+          <div class="stat-sub" id="stat-length-sub"></div>
+        </div>
+      </section>
+      <div id="stat-links" class="stat-links"></div>
+
+      <section class="panel lane-panel" aria-labelledby="lane-title">
+        <div class="panel-head">
+          <h2 id="lane-title">Live queue</h2>
+          <p id="lane-meta" class="muted small"></p>
+        </div>
+        <div class="lane-ends" aria-hidden="true">
+          <span>← head · served next</span>
+          <span>tail · new tickets join here →</span>
+        </div>
+        <ol id="lane" class="lane" aria-label="Waiting tickets, from the head (served next) to the tail">
+          <li class="lane-note"><strong>Loading the queue…</strong></li>
+        </ol>
+      </section>
+
+      <div class="columns">
+        <section class="panel feed-panel" aria-labelledby="feed-title">
+          <div class="panel-head">
+            <h2 id="feed-title">Live feed</h2>
+            <p id="feed-note" class="muted small"></p>
+          </div>
+          <ol id="feed" class="feed">
+            <li class="feed-empty">Loading recent activity…</li>
+          </ol>
+        </section>
+
+        <aside class="side">
+          <section class="panel you-panel" aria-labelledby="you-title">
+            <div class="panel-head"><h2 id="you-title">Your panel</h2></div>
+            <div id="you"><p class="muted">Loading…</p></div>
+          </section>
+
+          <section class="panel rush-panel" aria-labelledby="rush-title">
+            <div class="panel-head"><h2 id="rush-title">Next bot rush</h2></div>
+            <div id="rush-clock" class="rush-clock" aria-live="off">--:--</div>
+            <p id="rush-at" class="muted small"></p>
+            <p class="rush-note">
+              Eight demo agents rush the queue every <span id="rush-every">2 h</span>, bidding to cut ahead.
+              <strong>Joining the queue wakes them immediately:</strong> they rush within seconds.
+            </p>
+          </section>
+        </aside>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <a id="repo-link" href="https://github.com/0xmago77/x429" target="_blank" rel="noopener noreferrer">GitHub repo</a>
+      <span aria-hidden="true">·</span>
+      <a id="spec-link" href="https://github.com/0xmago77/x429/blob/main/SPEC.md" target="_blank" rel="noopener noreferrer">SPEC.md</a>
+      <span aria-hidden="true">·</span>
+      <span>Built on Arc</span>
+    </footer>
+    <noscript><p class="noscript">This dashboard needs JavaScript to read the queue from Arc.</p></noscript>
+  </body>
+</html>
