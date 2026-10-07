@@ -1,1 +1,62 @@
-[]
+[
+  {
+    "address": "0x1c60B589FA111ff23385705A035A28250E3B7160",
+    "name": "quant-desk",
+    "emoji": "⚡",
+    "role": "bot"
+  },
+  {
+    "address": "0x1D6A590e93cC95aCE0d221780C6578b11D981Ea3",
+    "name": "price-watcher",
+    "emoji": "📈",
+    "role": "bot"
+  },
+  {
+    "address": "0x40a94E3b450040D6EcB19A76CC701a78dB3cCfCd",
+    "name": "support-agent",
+    "emoji": "💬",
+    "role": "bot"
+  },
+  {
+    "address": "0x7d81f594c7206aB0F1B43cc1ed628E094265286A",
+    "name": "news-digest",
+    "emoji": "📰",
+    "role": "bot"
+  },
+  {
+    "address": "0x5B15225436d20CA696EebE057C107330E417A8d6",
+    "name": "data-labeler",
+    "emoji": "🏷️",
+    "role": "bot"
+  },
+  {
+    "address": "0x661570Db0c93BB27c75f08c3dC78BD50C150EF34",
+    "name": "research-crawler",
+    "emoji": "🔎",
+    "role": "bot"
+  },
+  {
+    "address": "0x30A87d5583b2082Cd590B600FdAfaa9Ec01a6315",
+    "name": "batch-embedder",
+    "emoji": "🧮",
+    "role": "bot"
+  },
+  {
+    "address": "0x68De57dC3DA35F01e913349408e871FD3b8f46E9",
+    "name": "nightly-backup",
+    "emoji": "🌙",
+    "role": "bot"
+  },
+  {
+    "address": "0x73ACFD91725A5403afd37a5AB4000eD8d6fe05a2",
+    "name": "operator",
+    "emoji": "🛎️",
+    "role": "operator"
+  },
+  {
+    "address": "0xC2B45AD14DE1238410A68db8f88f2C8F8b28902D",
+    "name": "treasury",
+    "emoji": "🏦",
+    "role": "treasury"
+  }
+]
