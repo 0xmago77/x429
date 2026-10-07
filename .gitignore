@@ -1,0 +1,15 @@
+node_modules/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+out/
+cache/
+broadcast/
+*.key
+*.pem
+.env
+.env.*
+*.log
+.e2e/
+.state/
+*.tsbuildinfo

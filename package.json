@@ -1,0 +1,29 @@
+{
+  "name": "x429-monorepo",
+  "private": true,
+  "type": "module",
+  "description": "x429: HTTP 429, settled. A paid, fair onchain queue for saturated APIs on Arc.",
+  "license": "MIT",
+  "workspaces": [
+    "sdk",
+    "demo"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "abi": "node scripts/export-abi.mjs",
+    "build:contracts": "cd contracts && forge build",
+    "build:web": "node web/build.mjs",
+    "typecheck": "tsc --noEmit -p sdk && tsc --noEmit -p demo && tsc --noEmit -p web",
+    "test:contracts": "cd contracts && forge test",
+    "test:sdk": "cd sdk && node --test",
+    "test": "npm run test:contracts && npm run test:sdk && npm run typecheck",
+    "e2e": "bash scripts/e2e-local.sh"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  }
+}
