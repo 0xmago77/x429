@@ -9,7 +9,7 @@
     "demo"
   ],
   "engines": {
-    "node": ">=24"
+    "node": ">=23.6"
   },
   "scripts": {
     "abi": "node scripts/export-abi.mjs",
