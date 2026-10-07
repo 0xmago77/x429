@@ -1,0 +1,20 @@
+{
+  "name": "x429",
+  "version": "0.1.0",
+  "description": "x429 — HTTP 429, settled. Client, server gate and chain helpers for the X429Queue contract on Arc.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "node --test test/",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "viem": "^2.57.3"
+  }
+}
