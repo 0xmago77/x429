@@ -1,0 +1,24 @@
+{
+  "chainId": 5042,
+  "network": "eip155:5042",
+  "contract": "0xcADd3151AE5D51F81977668CEe47AA1B641e4990",
+  "queueId": 1,
+  "operator": "0x73ACFD91725A5403afd37a5AB4000eD8d6fe05a2",
+  "deployer": "0xC2B45AD14DE1238410A68db8f88f2C8F8b28902D",
+  "deployTx": "0xfc0958fb8c13199175d2c098b6dcefafa59d9704af78a5615a27e865784e683d",
+  "createQueueTx": "0xc0290652d3501e3cba7215cd4cdd1e93ec07f0e6c76f1f99ff7f362a49b92077",
+  "deployBlock": 24811264,
+  "maxLength": 64,
+  "meta": "{\"name\":\"x429 demo\",\"serviceIntervalMs\":15000}",
+  "commit": "ebfb1f21271e025467b1b43f9b5a3509304eddf8",
+  "deployedAt": "2026-10-07T23:52:10Z",
+  "sourceVerification": {
+    "sourcify": "exact_match",
+    "url": "https://repo.sourcify.dev/5042/0xcADd3151AE5D51F81977668CEe47AA1B641e4990"
+  },
+  "gas": {
+    "deploy": 2082862,
+    "createQueue": 138021,
+    "effectiveGasPriceWei": 20010000000
+  }
+}
