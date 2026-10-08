@@ -63,6 +63,22 @@ function setFooter(repoUrl: string): void {
 }
 
 let rushEveryMin = DEFAULT_RUSH_EVERY_MIN;
+
+/** Queue meta is free text set by the operator; show its `name` when it is JSON, else a short excerpt. */
+function queueLabel(raw: string): string {
+  const meta = raw.trim();
+  if (!meta) return "";
+  try {
+    const parsed: unknown = JSON.parse(meta);
+    if (parsed && typeof parsed === "object" && typeof (parsed as { name?: unknown }).name === "string") {
+      return (parsed as { name: string }).name.slice(0, 60);
+    }
+  } catch {
+    // not JSON: fall through to the plain-text excerpt
+  }
+  return meta.length > 60 ? `${meta.slice(0, 57)}…` : meta;
+}
+
 const tickers: (() => void)[] = [];
 
 function updateRush(): void {
@@ -323,9 +339,9 @@ class LiveView {
   }
 
   private setLaneMeta(info: QueueInfo): void {
-    const meta = info.meta.trim();
     const parts = [`queue #${this.cfg.queueId}`];
-    if (meta) parts.push(meta.length > 60 ? `${meta.slice(0, 57)}…` : meta);
+    const label = queueLabel(info.meta);
+    if (label) parts.push(label);
     parts.push(`${fmtInt(info.length)} waiting`);
     parts.push(`the operator serves from the head about every ${Math.round(this.cfg.serviceIntervalMs / 1000)} s`);
     setText(byId("lane-meta"), parts.join(" · "));
