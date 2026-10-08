@@ -100,6 +100,11 @@ export class Feed {
     );
   }
 
+  /** "you were served", "news-digest was served". */
+  private was(address: string): string {
+    return this.dir.who(address).kind === "you" ? "were" : "was";
+  }
+
   private passedList(passed: readonly PassedEntry[]): Child[] {
     const parts: Child[] = ["passed "];
     passed.slice(0, MAX_PASSED_NAMES).forEach((p, i) => {
@@ -133,7 +138,7 @@ export class Feed {
         kind = "served";
         label = "served";
         const passes = item.timesPassed === 1 ? "1 pass" : `${item.timesPassed} passes`;
-        main = [this.actor(item.owner), ` was served after ${fmtDuration(item.waited)}`];
+        main = [this.actor(item.owner), ` ${this.was(item.owner)} served after ${fmtDuration(item.waited)}`];
         sub = [item.earned > 0n ? `earned ${usdcText(item.earned)} from ${passes}` : "never passed, earned nothing"];
         if (item.paid > 0n) sub.push(` · paid ${usdcText(item.paid)} to cut`);
         break;
@@ -142,7 +147,7 @@ export class Feed {
         kind = item.kicked ? "kicked" : "left";
         label = item.kicked ? "kicked" : "left";
         main = item.kicked
-          ? [this.actor(item.owner), " was removed by the operator"]
+          ? [this.actor(item.owner), ` ${this.was(item.owner)} removed by the operator`]
           : [this.actor(item.owner), " left the queue"];
         break;
       case "withdrawn":
