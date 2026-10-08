@@ -13,6 +13,8 @@
   "commit": "ebfb1f21271e025467b1b43f9b5a3509304eddf8",
   "deployedAt": "2026-10-07T23:52:10Z",
   "sourceVerification": {
+    "blockscout": "exact_match",
+    "blockscoutUrl": "https://explorer.arc.io/address/0xcADd3151AE5D51F81977668CEe47AA1B641e4990?tab=contract",
     "sourcify": "exact_match",
     "url": "https://repo.sourcify.dev/5042/0xcADd3151AE5D51F81977668CEe47AA1B641e4990"
   },

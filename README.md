@@ -94,7 +94,7 @@ amounts involved, settles at once, and is priced in money people actually think 
 <!-- LIVE_LINKS -->
 - **Dashboard:** https://0xmago77.github.io/x429/ (watch the lane live, or join the queue with your own wallet)
 - **Contract:** [`0xcADd3151AE5D51F81977668CEe47AA1B641e4990`](https://explorer.arc.io/address/0xcADd3151AE5D51F81977668CEe47AA1B641e4990) on Arc mainnet (chain 5042).
-  Source verified on [Sourcify](https://repo.sourcify.dev/5042/0xcADd3151AE5D51F81977668CEe47AA1B641e4990) (exact match, creation and runtime).
+  Source verified on the [Arc explorer](https://explorer.arc.io/address/0xcADd3151AE5D51F81977668CEe47AA1B641e4990?tab=contract) and on [Sourcify](https://repo.sourcify.dev/5042/0xcADd3151AE5D51F81977668CEe47AA1B641e4990) (exact match).
 - **Deploy transaction:** [`0xfc0958fb…784e683d`](https://explorer.arc.io/tx/0xfc0958fb8c13199175d2c098b6dcefafa59d9704af78a5615a27e865784e683d) (block 24,811,264; 2,082,862 gas ≈ 0.042 USDC)
 - **Queue id:** 1, served by operator [`0x73ACFD91…d6fe05a2`](https://explorer.arc.io/address/0x73ACFD91725A5403afd37a5AB4000eD8d6fe05a2), one request per 15 s
 - Record: [`deployments/arc-mainnet.json`](deployments/arc-mainnet.json)
